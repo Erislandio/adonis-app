@@ -4,6 +4,8 @@
 /** @typedef {import('@adonisjs/framework/src/Response')} Response */
 /** @typedef {import('@adonisjs/framework/src/View')} View */
 
+const Tweet = use("App/Models/Tweet");
+
 /**
  * Resourceful controller for interacting with tweets
  */
@@ -17,7 +19,11 @@ class TweetController {
    * @param {Response} ctx.response
    * @param {View} ctx.view
    */
-  async index({ request, response, view }) {}
+  async index() {
+    const tweets = await Tweet.all();
+
+    return tweets;
+  }
 
   /**
    * Create/save a new tweet.
@@ -27,7 +33,13 @@ class TweetController {
    * @param {Request} ctx.request
    * @param {Response} ctx.response
    */
-  async store({ request, response }) {}
+  async store({ request, auth, response }) {
+    const data = request.only(["content"]);
+
+    const tweet = await Tweet.create({ user_id: auth.user_id, ...data });
+
+    return tweet;
+  }
 
   /**
    * Display a single tweet.
@@ -38,17 +50,11 @@ class TweetController {
    * @param {Response} ctx.response
    * @param {View} ctx.view
    */
-  async show({ params, request, response, view }) {}
+  async show({ params, request, response, view }) {
+    const tweet = await Tweet.findOrFail(params.id);
 
-  /**
-   * Update tweet details.
-   * PUT or PATCH tweets/:id
-   *
-   * @param {object} ctx
-   * @param {Request} ctx.request
-   * @param {Response} ctx.response
-   */
-  async update({ params, request, response }) {}
+    return tweet;
+  }
 
   /**
    * Delete a tweet with id.
@@ -58,7 +64,15 @@ class TweetController {
    * @param {Request} ctx.request
    * @param {Response} ctx.response
    */
-  async destroy({ params, request, response }) {}
+  async destroy({ params, auth, request, response }) {
+    const tweet = await Tweet.findOrFail(params.id);
+
+    if (tweet.user_id !== auth.user_id) {
+      return response.status(401);
+    }
+
+    await tweet.delete();
+  }
 }
 
 module.exports = TweetController;
